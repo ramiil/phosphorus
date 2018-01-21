@@ -8,15 +8,18 @@ def xor(xs, ys):
     return [(x^ys)%256 for x in xs]
 
 def hsm(data):
-  data = '$@1t3dW^t3r' +data + chr(0) * (HSIZE-(len(data)%HSIZE))
+  data = chr(len(data)%256) + data
+  data = data + chr(0) * (HSIZE-(len(data)%HSIZE))
   data = [ord(x) for x in data]
-  hashsum = 170
+  hashsum = 171
   text = [hashsum] * HSIZE
   blocks = []
 
   # Mixing input data
   for i in range(1, len(data)):
-    data[i] = (data[i-1] ^ (data[i]+1) ^ i-1)%256
+    data[i] = (data[i-1] ^ (data[i]+1))%256
+  for i in range(len(data)-1, 1, -1):
+    data[i] = (data[i-1] ^ (data[i]+1))%256
 
   # Split data to 4-byte blocks and mix bits with each other
   for i in range(0, (len(data)//BSIZE)):
@@ -24,7 +27,7 @@ def hsm(data):
     A, B, C, D = data[i*BSIZE:(i+1)*BSIZE]
     block += [abs((A&B)|(~A&C))]
     block += [abs((B&C)|(~C&D))]
-    block += [abs(C^D^A)>>3]
+    block += [abs(C^D^A)]
     block += [abs(A^(~B|D))]
     blocks += block[::pow(-1, i)]
 
@@ -49,4 +52,5 @@ def hsm(data):
   result = xor(text, hashsum)[0:HSIZE]
   
   # And return it's as hex string
-  return "".join(map(lambda x: "{0:0{1}x}".format(x,2), result))
+  # print('H>',"".join(map(lambda x: "{0:0{1}x}".format(x,2), result)))
+  return result

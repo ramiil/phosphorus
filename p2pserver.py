@@ -63,11 +63,10 @@ class rqHandler(BaseHTTPRequestHandler):
       except KeyError:
         self.wfile.write('{}'.encode("utf-8"))
     if(page=='/blocks'):
-      myOutput = ''
-      for i in range(int(actions['start']), int(actions['start'])+int(actions['count'])):
-        print(myChain.getJsonBlock(i))
-        myOutput += myChain.getJsonBlock(i)
-      self.wfile.write(myOutput.encode("utf-8"))
+      myOutput =[myChain.getJsonBlock(i) for i in range(int(actions['start']), int(actions['start'])+int(actions['count'])) ] 
+      self.wfile.write(('{'+','.join(myOutput)+'}').encode("utf-8"))
+    if(page=='/blockstat'):
+       self.wfile.write(("{ 'count':'"+str(len(myChain.chain))+"'}").encode("utf-8"))
     if(page=='/join'):
       nodes.update(actions)
       self.wfile.write("{'OK': True}".encode("utf-8"))

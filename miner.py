@@ -16,7 +16,7 @@ totalHashed = 0
 startTime = time.time()
 myTimestamp = time.time()
 
-myChain = blockchain.Blockchain({'data': '', 'prevBlockHash ': '', 'time': 946684800, 'nonce': 0})
+
 
 try:
   myData=q.request('GET', NODE+"/data").data.decode("utf-8")
@@ -34,7 +34,7 @@ try:
       isValidated = q.request('POST', NODE+"/validate?nonce="+str(i)+"&timestamp="+str(myTimestamp), encode_multipart=False, multipart_boundary=None, fields = {'data': myData}).data.decode("utf-8")
       if(isValidated=="{'applied': 'True'}"):
         myChain.applyBlock(myBlock)
-        myTimestamp = time.time()
+        myTimestamp = int(time.time())
         myData=q.request('GET', NODE+"/data").data.decode("utf-8")
         totalBlocksFound += 1
       i = 0

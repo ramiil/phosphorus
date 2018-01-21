@@ -19,12 +19,19 @@ class Network:
       return q.request('GET', node+"/data").data.decode("utf-8")
     except urllib3.exceptions.MaxRetryError:
       return "{'error': 'NodeUnreachable'}"
+      
+  def getChainsize(self, node):
+    try:
+      return q.request('GET', node+"/blockstat").data.decode("utf-8")
+    except urllib3.exceptions.MaxRetryError:
+      return "{'error': 'NodeUnreachable'}"
 
   def validateBlock(self, node, block):
     nonce = block['nonce']
     timestamp = block['nonce']
     fields = {'data': myData}
     try:    
-      return q.request('POST', NODE+"/validate?nonce="+nonce+"&timestamp="+timestamp, encode_multipart=False, multipart_boundary=None, fields).data.decode("utf-8")
+      return q.request('POST', NODE+"/validate?nonce="+str(i)+"&timestamp="+str(myTimestamp), encode_multipart=False, multipart_boundary=None, fields = {'data': myData}).data.decode("utf-8")
+
     except urllib3.exceptions.MaxRetryError:
       return "{'error': 'NodeUnreachable'}"
