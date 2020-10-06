@@ -3,18 +3,14 @@ from multiprocessing import Process
 from url_decode import urldecode
 import sys, time, os, json, random, blockchain, base64
 
-DBG_VAL = 'myDBGval'
+myChain = blockchain.Blockchain()
+myChain.add("", "", time.time(), 0)
 
-nodes = {}
-#nodes[DBG_VAL]='127.0.0.1'
-nodes[0] = DBG_VAL
-
-newData = {}
-newData[DBG_VAL]={DBG_VAL : '1'}
-
-myChain = blockchain.Blockchain({'data': '', 'prevBlockHash ': '', 'time': 946684800, 'nonce': 0})
+miners = {}
 
 class rqHandler(BaseHTTPRequestHandler):
+  global complexity_adjusted
+
   def do_HEAD(self):
     self.send_response(200)
     self.send_header('Content-type', 'text/json')
@@ -32,16 +28,15 @@ class rqHandler(BaseHTTPRequestHandler):
       page=self.path
 
     if(page=='/validate'):
-      pass
       data = urldecode(self.rfile.read(int(self.headers['content-length'])).decode('utf-8')).split('=')[1]
       block = myChain.makeBlock(data, float(actions['timestamp']), int(actions['nonce']))
       if myChain.validateBlock(block):
         myChain.applyBlock(block)
         self.wfile.write("{'applied': 'True'}".encode("utf-8"))
-        print("BLOCK APPLIED")
+        print(" BLOCK APPLIED")
       else:
         self.wfile.write("{'applied': 'False'}".encode("utf-8"))
-        print("BLOCK NOT APPLIED")
+        print(" BLOCK REJECTED")
 
   def do_GET(self):
     self.do_HEAD()
@@ -55,23 +50,44 @@ class rqHandler(BaseHTTPRequestHandler):
 
     if(page=='/time'):
       self.wfile.write(str(time.time()).encode("utf-8"))
-    if(page=='/nodes'):
-      self.wfile.write(str(nodes).encode("utf-8"))
-    if(page=='/node'):
-      try:
-        self.wfile.write(str(nodes[actions['key']]).encode("utf-8"))
-      except KeyError:
-        self.wfile.write('{}'.encode("utf-8"))
+    if(page=='/complexity'):
+      self.wfile.write(str(myChain.getComplexity()).encode("utf-8"))
+
+    if(page=='/totalhr'):
+      totalhr = 0
+      for miner in miners:
+        for worker in miners[miner]:
+          totalhr += float(miners[miner][worker]['hashrate'])
+      self.wfile.write( json.dumps({"hashrate": totalhr}).encode("utf-8") )
+    if(page=='/userhr'):
+      userhr = 0
+      for worker in miners[action['username']]:
+        userhr += float(miners[action['username']][worker]['hashrate'])
+      self.wfile.write( json.dumps({action['username']: totalhr}).encode("utf-8") )
+
+    if(page=='/report_hashrate'):
+      miners[actions['username']][actions['worker']]['hashrate'] = float(actions['hashrate'])
+
     if(page=='/blocks'):
-      myOutput =[myChain.getJsonBlock(i) for i in range(int(actions['start']), int(actions['start'])+int(actions['count'])) ] 
-      self.wfile.write(('{'+','.join(myOutput)+'}').encode("utf-8"))
+      myOutput=json.dumps(myChain.chain[int(actions['start']):(int(actions['start'])+int(actions['count']))])
+      self.wfile.write(myOutput.encode("utf-8"))
     if(page=='/blockstat'):
-       self.wfile.write(("{ 'count':'"+str(len(myChain.chain))+"'}").encode("utf-8"))
+       blockstat = {"count": str(len(myChain.chain))}
+       self.wfile.write(json.dumps(blockstat).encode("utf-8"))
+
+    if(page=='/leave'):
+      miners[actions['username']][actions['worker']] = None
     if(page=='/join'):
-      nodes.update(actions)
+      if not actions['username'] in miners.keys():
+        miners[actions['username']] = {}
+      if not actions['worker'] in miners[actions['username']].keys():
+        miners[actions['username']][actions['worker']] = {}
+      else:
+        miners[actions['username']][actions['worker']]['hashrate'] = 0.0
       self.wfile.write("{'OK': True}".encode("utf-8"))
+
     if(page=='/data'):
-      self.wfile.write(str(newData).encode("utf-8"))
+      data = {"user": random.randint(1, 1000)}
+      self.wfile.write( json.dumps(data).encode("utf-8") )
 
-
-HTTPServer(('127.0.0.1', int(1993)), rqHandler).serve_forever()
+HTTPServer(('0.0.0.0', int(1993)), rqHandler).serve_forever()
